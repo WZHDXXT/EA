@@ -12,6 +12,7 @@ np.random.seed(42)
 GA_POP_SIZE = 10
 GA_MUTATION_RATE = 0.01
 GA_CROSSOVER_RATE = 0.5
+tournament_k = 5
 
 def crossover(p1, p2, crossover_rate):
     if np.random.uniform(0, 1)<crossover_rate:
@@ -34,6 +35,9 @@ def mutation(p, mutation_rate):
             p[i] = 1-p[i]
     return p
 
+# ******** MATING SELECTION *********
+
+# ******** roulette_wheel **********
 def mating_selection_roulette_wheel(parent, parent_f):
     fitness = np.sum(parent_f)
     p = parent_f/(fitness+1e-5)
@@ -53,8 +57,54 @@ def mating_selection_roulette_wheel(parent, parent_f):
             else:
                 parents.append(parent[0])
                 break
-    
     return np.array(parents)
+    
+# *********** tourament *************
+def mating_selection_tourament(parent, parent_f):
+    parents = []
+    for _ in range(len(parent)):
+        parent_index =  np.random.choice(len(parent), size = tournament_k, replace=False)
+        parent = parent[parent_index]
+        parent_f = parent_f[parent_index]
+        new_parent = parent[np.argmax(parent_f)]
+        parents.append(new_parent)
+    return np.array(parents)
+
+# ********** sort selection *************
+def rank_selection(parent, parent_f):
+    rank = np.argsort(parent_f)
+    probabilities = np.arange(1, len(parent_f) + 1) / sum(range(1, len(parent_f) + 1))
+    # choose with probability of rank
+    selected_indices = np.random.choice(rank, size=len(parent), p=probabilities)
+    parents = parent[selected_indices]
+    return np.array(parents)
+
+# ********** stochastic universal sampling ************
+def SUS(parent, parent_f):
+    fitness = np.sum(parent_f)
+    point_distance = fitness / len(parent)
+    start_point = np.random.uniform(0, point_distance)
+    points = [start_point + i * point_distance for i in range(len(parent))]
+    selected = []
+    for point in points:
+        i = 0
+        while True:
+            point -= parent_f[i]
+            if point > parent_f[i]:
+                i += 1
+            else:
+                selected.append(parent[i])
+                break
+    return np.array(selected)
+
+# ********* random selection **************
+def mating_seletion(parent, parent_f):
+    indices = np.random.choice(len(parent), len(parent), replace=True)
+    return parent[indices]
+
+
+
+
 # To make your results reproducible (not required by the assignment), you could set the random seed by
 # `np.random.seed(some integer, e.g., 42)`
 
@@ -115,6 +165,8 @@ def studentnumber1_studentnumber2_GA(problem: ioh.problem.PBO) -> None:
         # this is how you evaluate one solution `x`
         # f = problem(x)
         
+
+        # *********** compare different mating selections ***********
         parent = mating_selection_roulette_wheel(parent, parent_f)
         
         new_parent = []
