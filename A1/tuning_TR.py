@@ -135,7 +135,7 @@ class GlobalBO(RandomSampler):
             # Thompson sample
             proxy_sample_x = random_sample(self.d, self.proxy_sample_size)
             proxy_sample_y = self.gp.sample_y(proxy_sample_x).reshape(-1)
-            best_proxy_x = proxy_sample_x[min(range(self.proxy_sample_size), key=lambda i: proxy_sample_y[i])]
+            best_proxy_x = proxy_sample_x[max(range(self.proxy_sample_size), key=lambda i: proxy_sample_y[i])]
 
             self.evaluate(best_proxy_x)
 
@@ -161,7 +161,7 @@ class GlobalBO_EI(RandomSampler):
             self.gp.fit(self.obs_x, self.obs_y)
             
             proxy_sample_x = random_sample(self.d, self.proxy_sample_size)
-            y_best = min(self.obs_y)
+            y_best = max(self.obs_y)
             ei_values = self.expected_improvement(proxy_sample_x, self.gp, y_best)
             best_proxy_x = proxy_sample_x[np.argmax(ei_values)] 
             self.evaluate(best_proxy_x)
@@ -184,7 +184,7 @@ class TuRBO(GlobalBO):
 
     def run(self, budget):
         while budget > 0:
-            best_x = self.obs_x[min(range(len(self.obs_y)), key=lambda i: self.obs_y[i])]
+            best_x = self.obs_x[max(range(len(self.obs_y)), key=lambda i: self.obs_y[i])]
             tr_obs = [(obs_x, obs_y) for obs_x, obs_y in zip(self.obs_x, self.obs_y) if np.max(np.abs(obs_x - best_x)) <= self.tr_rad]
             self.gp.fit(*zip(*tr_obs))
 
@@ -192,7 +192,7 @@ class TuRBO(GlobalBO):
 
             # Thompson sampling
             proxy_sample_y = self.gp.sample_y(proxy_sample_x).reshape(-1)
-            best_proxy_x = proxy_sample_x[min(range(self.proxy_sample_size), key=lambda i: proxy_sample_y[i])]
+            best_proxy_x = proxy_sample_x[max(range(self.proxy_sample_size), key=lambda i: proxy_sample_y[i])]
 
             self.evaluate(best_proxy_x)
             budget -= 1
@@ -242,12 +242,12 @@ class TuRBO_EI(GlobalBO):
     
     def run(self, budget):
         while budget > 0:
-            best_x = self.obs_x[min(range(len(self.obs_y)), key=lambda i: self.obs_y[i])]
+            best_x = self.obs_x[max(range(len(self.obs_y)), key=lambda i: self.obs_y[i])]
             tr_obs = [(obs_x, obs_y) for obs_x, obs_y in zip(self.obs_x, self.obs_y) if np.max(np.abs(obs_x - best_x)) <= self.tr_rad]
             self.gp.fit(*zip(*tr_obs))
 
             proxy_sample_x = random_sample(self.d, self.proxy_sample_size, origin=best_x, radius=self.tr_rad)
-            y_best = min(self.obs_y)
+            y_best = max(self.obs_y)
             ei_values = self.expected_improvement(proxy_sample_x, self.gp, y_best)
             best_proxy_x = proxy_sample_x[np.argmax(ei_values)]
 
