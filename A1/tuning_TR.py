@@ -42,7 +42,7 @@ def tune_hyperparameters() -> List:
     sampler_1 = RandomSampler(GA_evaluation, d, sample_budget, F18, F23)
     sampler_1.run(budget=1)
     
-    sampler_2 = TuRBO(GA_evaluation, d, sample_budget, F18, F23)
+    sampler_2 = GlobalBO(GA_evaluation, d, sample_budget, F18, F23)
     sampler_2.run(budget=5)
 
     sampler_3 = TuRBO(GA_evaluation, d, sample_budget, F18, F23)
