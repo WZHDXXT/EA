@@ -82,7 +82,15 @@ def GA_evaluation(problem1, problem2, sample):
     score = (F_18 + F_23)/2
     return score
 
-
+# ********* mixed data type problem *************
+def random_sample_mixed(d, num, origin=origin, radius=radius, int_dim=None):
+    origin = np.array(origin)
+    radius = np.array(radius)
+    sample = np.random.rand(num, d) * 2 * radius + origin - radius
+    if int_dim is not None:
+        sample[:, int_dim] = np.round(sample[:, int_dim]).astype(int)
+    return sample
+    
 def random_sample(d, num, origin=origin, radius=radius):
     origin = np.array(origin)
     radius = np.array(radius)
