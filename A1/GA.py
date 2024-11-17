@@ -9,8 +9,8 @@ from ioh import get_problem, logger, ProblemClass
 budget = 5000
 
 np.random.seed(42)
-GA_POP_SIZE = 10
-GA_MUTATION_RATE = 0.01
+GA_POP_SIZE = 37
+GA_MUTATION_RATE = 0.03
 GA_CROSSOVER_RATE = 0.5
 tournament_k = 5
 
@@ -20,14 +20,14 @@ def crossover(p1, p2, crossover_rate):
         p1[cross_point] = p2[cross_point]
     return p1
 
-def crossover_random(parent, pop, crossover_rate):
+'''def crossover_random(parent, pop, crossover_rate):
     if np.random.uniform(0, 1)<crossover_rate:
         i = np.random.randint(0, len(pop), 1)
         
         # randomly select one from pop
         cross_point = np.random.randint(0, 2, len(parent)).astype(np.bool_)
         parent[cross_point] = pop[i][cross_point]
-    return parent
+    return parent'''
 
 def mutation(p, mutation_rate):
     for i in range(len(p)):
@@ -62,6 +62,7 @@ def mating_selection_roulette_wheel(parent, parent_f):
 # *********** tourament *************
 def mating_selection_tourament(parent, parent_f):
     parents = []
+    parent_f = np.array(parent_f)
     for _ in range(len(parent)):
         parent_index =  np.random.choice(len(parent), size = tournament_k, replace=False)
         parent = parent[parent_index]
@@ -89,8 +90,10 @@ def SUS(parent, parent_f):
     for point in points:
         i = 0
         while True:
+            if i >= len(parent_f):  
+                break
             point -= parent_f[i]
-            if point > parent_f[i]:
+            if point > 0: 
                 i += 1
             else:
                 selected.append(parent[i])
@@ -167,7 +170,7 @@ def studentnumber1_studentnumber2_GA(problem: ioh.problem.PBO) -> None:
         
 
         # *********** compare different mating selections ***********
-        parent = mating_selection_roulette_wheel(parent, parent_f)
+        parent = mating_seletion(parent, parent_f)
         
         new_parent = []
         new_parent_f = []
@@ -180,7 +183,7 @@ def studentnumber1_studentnumber2_GA(problem: ioh.problem.PBO) -> None:
         new_parent_f = problem(new_parent)
         new_parent_f = np.array(new_parent_f)
         
-        fitness_sort = np.argsort(new_parent_f)
+        fitness_sort = np.argsort(new_parent_f)[::-1]
 
         parent = new_parent[fitness_sort][:GA_POP_SIZE]
         parent_f = new_parent_f[fitness_sort][:GA_POP_SIZE]        

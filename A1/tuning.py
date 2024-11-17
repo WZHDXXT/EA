@@ -43,59 +43,76 @@ def tune_hyperparameters() -> List:
 
                 current_best = float('inf')
                 
-                GA_evaluation_num = 5
-                for _ in range(GA_evaluation_num): 
-                    score = GA_evaluation(F18, F23, pop_size, mutation_rate, crossover_rate) 
-                    if score<current_best:
-                        current_best = score
-                        param_dic['pop_size'] = pop_size
-                        param_dic['mutation_rate'] = mutation_rate
-                        param_dic['crossover_rate'] = crossover_rate
+                GA_evaluation_num = 2
+                score = GA_evaluation(F18, F23, pop_size, mutation_rate, crossover_rate, GA_evaluation_num) 
+                if score<current_best:
+                    current_best = score
+                    param_dic['pop_size'] = pop_size
+                    param_dic['mutation_rate'] = mutation_rate
+                    param_dic['crossover_rate'] = crossover_rate
+                
+                
+                
                 scores.append(current_best)
                 params_dic.append(param_dic)
-    # compare scores and params_dic to generate a range for configuration.
-    # best_params = params_dic[scores.index(max(scores))]
-
+    sorted_pairs = sorted(zip(scores, params_dic), key=lambda x: x[0], reverse=True)
+    sorted_scores, sorted_params_dic = zip(*sorted_pairs)
+    sorted_scores = list(sorted_scores)
+    sorted_params_dic = list(sorted_params_dic)
+    print(sorted_params_dic)
+    
+    best_params = params_dic[scores.index(max(scores))]
+    print(best_params)
 
     # ********** optimization ***********
     # inital points
     # use configuration sample
     
-    # x0 = [[param['pop_size'], param['mutation_rate'], param['crossover_rate']] for param in params_dic]
+    x0 = [[param['pop_size'], param['mutation_rate'], param['crossover_rate']] for param in params_dic]
+    result = gp_minimize(func=lambda params: -GA_evaluation(F18, F23, *params), 
+                         dimensions=[(10, 200), (0.001, 0.1), (0.5, 0.9)], 
+                         n_calls=30, x0=x0, y0=scores)
     
-    cs = get_hyperparameter_search_space()
+    '''cs = get_hyperparameter_search_space()
     configs = [dict(cs.sample_configuration()) for _ in range(100)]
     x0 = [[param['pop_size'], param['mutation_rate'], param['crossover_rate']] for param in configs]
     
     # ******** different acquisition functions *************
-    '''result = gp_minimize(func=lambda params: -GA_evaluation(F18, F23, *params), 
-                         dimensions=[(10, 200), (0.001, 0.1), (0.5, 0.9)], 
-                         n_calls=30, x0=x0, y0=scores)'''
     
     # no dimension limitation as already in configuration space
     result = gp_minimize(func=lambda params: -GA_evaluation(F18, F23, *params), 
-                         n_calls=30, x0=x0, y0=scores)
+                         n_calls=30, x0=x0, y0=scores)'''
     best_params = result.x
-    
+    print(best_params)
     # *********** compare with random search ? ***************
     
-    print(best_params)
+    
     # return best_params
 
 
-def GA_evaluation(problem1, problem2, pop_size, mutation_rate, crossover_rate):
+def GA_evaluation(problem1, problem2, pop_size, mutation_rate, crossover_rate, evaluation_num=10):
+    F18 = []
+    F23 = []
+    for _ in range(evaluation_num):
+        # normalization    
+        GA_1(problem1, pop_size, mutation_rate, crossover_rate)
+        # print(problem1.state.current_best)
+        F_18 = problem1.state.current_best.y
+        F18.append(F_18)
+        problem1.reset()
         
-    GA_1(problem1, pop_size, mutation_rate, crossover_rate)
-    # print(problem1.state.current_best)
-    F_18 = problem1.state.current_best.y
-    problem1.reset()
-    GA_1(problem2, pop_size, mutation_rate, crossover_rate)
-    F_23 = problem2.state.current_best.y
-    # print(problem2.state.current_best)
-    problem2.reset()
-    
+        GA_1(problem2, pop_size, mutation_rate, crossover_rate)
+        F_23 = problem2.state.current_best.y
+        F23.append(F_23)
+        problem2.reset()
+    F23_min = min(F23)
+    F23_max = max(F23)
+    F18_min = min(F18)
+    F18_max = max(F18)
     # ********** set different weights after recording the initial results *******
-    score = (F_18 + F_23)/2
+    F_18_norm = (F_18 - F18_min) / ((F18_max - F18_min)+1e-6)
+    F_23_norm = (F_23 - F23_min) / ((F23_max - F23_min)+1e-6)
+    score = (F_18_norm + F_23_norm)/2
     return score
 
 # ************ configuration sapce ***************

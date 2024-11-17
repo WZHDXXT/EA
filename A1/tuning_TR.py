@@ -1,30 +1,29 @@
 from typing import List
-import ConfigSpace
 import numpy as np
 from scipy.stats import norm
+import matplotlib.pyplot as plt
 import sklearn.gaussian_process
-from sklearn.gaussian_process.kernels import RBF, WhiteKernel,ConstantKernel as C
-
 # you need to install this package `ioh`. Please see documentations here: 
 # https://iohprofiler.github.io/IOHexp/ and
 # https://pypi.org/project/ioh/
 from ioh import get_problem, logger, ProblemClass
 from GA import studentnumber1_studentnumber2_GA, GA_1, create_problem
-from skopt import gp_minimize
+
 budget = 1000000
 # To make your results reproducible (not required by the assignment), you could set the random seed by
 # `np.random.seed(some integer, e.g., 42)`
 
-# Hyperparameters to tune, e.g.
+'''# Hyperparameters to tune, e.g.
 hyperparameter_space = {
     "population_size": [50, 100, 200],
     "mutation_rate": [0.01, 0.05, 0.1],
     "crossover_rate": [0.5, 0.7, 0.9]
-}
+}'''
+
 d = 3  
 num = 5 
-origin = [55, 0.06, 0.6] 
-radius = [45, 0.04, 0.3]
+origin = [105, 0.05, 0.6] 
+radius = [95, 0.05, 0.35]
 
 # Hyperparameter tuning function
 def tune_hyperparameters() -> List:
@@ -36,33 +35,52 @@ def tune_hyperparameters() -> List:
     # create the N-Queens problem and the data logger
     F23, _logger_23 = create_problem(dimension=49, fid=23)
     
+
     
+    run_budget = 100
   # ********** optimization ***********
     sample_budget = 10
-    sampler_1 = RandomSampler(GA_evaluation, d, sample_budget, F18, F23)
-    sampler_1.run(budget=1)
+    '''sampler_1 = RandomSampler(GA_evaluation, d, sample_budget, F18, F23)
+    sampler_1.run(budget=run_budget)
     
-    sampler_2 = TuRBO(GA_evaluation, d, sample_budget, F18, F23)
-    sampler_2.run(budget=5)
 
-    sampler_3 = TuRBO(GA_evaluation, d, sample_budget, F18, F23)
-    sampler_3.run(budget=100)
-    samplers = [sampler_1, sampler_2, sampler_3]
-    best_overall_x = None
+    sampler_2 = GlobalBO(GA_evaluation, d, sample_budget, F18, F23)
+    sampler_2.run(budget=run_budget)'''
+
+    sampler_3 = GlobalBO_EI(GA_evaluation, d, sample_budget, F18, F23)
+    sampler_3.run(budget=run_budget)
+
+    '''sampler_4 = TuRBO(GA_evaluation, d, sample_budget, F18, F23)
+    sampler_4.run(budget=run_budget)
+
+    sampler_5 = TuRBO_EI(GA_evaluation, d, sample_budget, F18, F23)
+    sampler_5.run(budget=run_budget)
+
+    samplers = [sampler_1, sampler_2, sampler_3, sampler_4, sampler_5]
+    labels = ['RandomSampler', 'GlobalBO', 'GlobalBO_EI', 'Trust Region', 'TuRBO_EI'] 
+    colors = ['blue', 'red', 'green', 'orange', 'grey'] 
+
+    for sampler, label, color in zip(samplers, labels, colors):
+        plt.plot(range(len(sampler.best_y)), sampler.best_y, label=label, color=color)
+        plt.legend()
+
+    plt.xlabel("Iterations")
+    plt.ylabel("Best Scores")
+    plt.title("Best Scores of Different Samplers")
+    plt.grid(True)
+    plt.show()'''
+
+    
+    '''best_overall_x = None
     best_overall_y = -float('inf')
 
-
-    # ******** print samplers' best_y to compare **********
     for sampler in samplers:
         if sampler.best_y[-1] > best_overall_y:
             best_overall_y = sampler.best_y[-1]
-            best_overall_x = sampler.best_x[-1]
+            best_overall_x = sampler.best_x[-1]'''
 
-    return best_overall_x
-    
-    '''print(sampler_2.best_y)
-    print(sampler_2.best_x[-1])
-    return sampler_2.best_x[-1]'''
+    return sampler_3.best_x[-1]
+
 
 def GA_evaluation(problem1, problem2, sample):
     pop_size, mutation_rate, crossover_rate = sample
@@ -79,14 +97,41 @@ def GA_evaluation(problem1, problem2, sample):
     problem2.reset()
     
     # ********** set different weights after recording the initial results *******
-    score = (F_18 + F_23)/2
+    score = 0.9*F_18 + F_23*0.1
     return score
+
 
 
 def random_sample(d, num, origin=origin, radius=radius):
     origin = np.array(origin)
     radius = np.array(radius)
-    return np.random.rand(num, d) * 2 * radius + origin - radius
+    
+    if np.any(origin < 0):
+        origin = np.maximum(origin, 0)
+    
+    min_value = origin - radius
+    min_value = np.maximum(min_value, 0) 
+    max_value = origin + radius
+
+    samples = np.random.rand(num, d) * (max_value - min_value) + min_value
+    samples[:, 0] = np.round(samples[:, 0]).astype(int)
+    samples[:, 0] = np.clip(samples[:, 0], min_value[0], max_value[0])
+    samples[:, 1] = np.maximum(samples[:, 1], 0.0001)  
+    samples[:, 2] = np.maximum(samples[:, 2], 0.0001)  
+
+    return samples
+
+'''def random_sample(d, num, origin=origin, radius=radius):
+    origin = np.array(origin)
+    radius = np.array(radius)
+    
+    if np.any(origin < 0):
+        origin = np.maximum(origin, 0) 
+    min_value = origin - radius
+    min_value = np.maximum(min_value, 0)  
+    max_value = origin + radius
+    samples = np.random.rand(num, d) * (max_value - min_value) + min_value
+    return samples'''
 
 class RandomSampler:
     def __init__(self, problem, d, doe_sample_budget, *problem_args, is_reset=False):
@@ -135,7 +180,7 @@ class GlobalBO(RandomSampler):
             # Thompson sample
             proxy_sample_x = random_sample(self.d, self.proxy_sample_size)
             proxy_sample_y = self.gp.sample_y(proxy_sample_x).reshape(-1)
-            best_proxy_x = proxy_sample_x[min(range(self.proxy_sample_size), key=lambda i: proxy_sample_y[i])]
+            best_proxy_x = proxy_sample_x[max(range(self.proxy_sample_size), key=lambda i: proxy_sample_y[i])]
 
             self.evaluate(best_proxy_x)
 
@@ -143,7 +188,7 @@ class GlobalBO_EI(RandomSampler):
     def __init__(self, problem, d, doe_sample_budget, *problem_args, **kwargs):
         super().__init__(problem, d, doe_sample_budget, *problem_args, **kwargs)
         
-        kernel = sklearn.gaussian_process.kernels.Matern()
+        kernel = None
         self.gp = sklearn.gaussian_process.GaussianProcessRegressor(kernel=kernel)
         self.proxy_sample_size = 10
 
@@ -161,7 +206,7 @@ class GlobalBO_EI(RandomSampler):
             self.gp.fit(self.obs_x, self.obs_y)
             
             proxy_sample_x = random_sample(self.d, self.proxy_sample_size)
-            y_best = min(self.obs_y)
+            y_best = max(self.obs_y)
             ei_values = self.expected_improvement(proxy_sample_x, self.gp, y_best)
             best_proxy_x = proxy_sample_x[np.argmax(ei_values)] 
             self.evaluate(best_proxy_x)
@@ -184,7 +229,7 @@ class TuRBO(GlobalBO):
 
     def run(self, budget):
         while budget > 0:
-            best_x = self.obs_x[min(range(len(self.obs_y)), key=lambda i: self.obs_y[i])]
+            best_x = self.obs_x[max(range(len(self.obs_y)), key=lambda i: self.obs_y[i])]
             tr_obs = [(obs_x, obs_y) for obs_x, obs_y in zip(self.obs_x, self.obs_y) if np.max(np.abs(obs_x - best_x)) <= self.tr_rad]
             self.gp.fit(*zip(*tr_obs))
 
@@ -192,11 +237,15 @@ class TuRBO(GlobalBO):
 
             # Thompson sampling
             proxy_sample_y = self.gp.sample_y(proxy_sample_x).reshape(-1)
-            best_proxy_x = proxy_sample_x[min(range(self.proxy_sample_size), key=lambda i: proxy_sample_y[i])]
-
+            best_proxy_x = proxy_sample_x[max(range(self.proxy_sample_size), key=lambda i: proxy_sample_y[i])]
+            
+            # if np.any(best_proxy_x) <=0 :
+            
             self.evaluate(best_proxy_x)
             budget -= 1
-            improvement = self.best_y[-1] > self.best_y[-2]
+            improvement = None
+            if len(self.best_y)>1:
+                improvement = self.best_y[-1] > self.best_y[-2]
             
             if improvement:
                 self.tr_succ_count += 1
@@ -242,12 +291,12 @@ class TuRBO_EI(GlobalBO):
     
     def run(self, budget):
         while budget > 0:
-            best_x = self.obs_x[min(range(len(self.obs_y)), key=lambda i: self.obs_y[i])]
+            best_x = self.obs_x[max(range(len(self.obs_y)), key=lambda i: self.obs_y[i])]
             tr_obs = [(obs_x, obs_y) for obs_x, obs_y in zip(self.obs_x, self.obs_y) if np.max(np.abs(obs_x - best_x)) <= self.tr_rad]
             self.gp.fit(*zip(*tr_obs))
 
             proxy_sample_x = random_sample(self.d, self.proxy_sample_size, origin=best_x, radius=self.tr_rad)
-            y_best = min(self.obs_y)
+            y_best = max(self.obs_y)
             ei_values = self.expected_improvement(proxy_sample_x, self.gp, y_best)
             best_proxy_x = proxy_sample_x[np.argmax(ei_values)]
 
