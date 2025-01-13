@@ -8,25 +8,43 @@ from ioh import get_problem, logger, ProblemClass
 budget = 5000
 
 np.random.seed(42)
-GA_POP_SIZE = 37
-GA_MUTATION_RATE = 0.03
+GA_POP_SIZE = 10
+GA_MUTATION_RATE = 0.01
 GA_CROSSOVER_RATE = 0.5
 tournament_k = 5
+
+# ************ cross-over **************
+def single_point_crossover(p1, p2, crossover_rate):
+    if np.random.uniform(0, 1) < crossover_rate:
+        cross_point = np.random.randint(1, len(p1))
+        child = np.concatenate([p1[:cross_point], p2[cross_point:]])
+        return child
+    return p1.copy()
+
+def two_point_crossover(p1, p2, crossover_rate):
+    if np.random.uniform(0, 1) < crossover_rate:
+        point1, point2 = sorted(np.random.choice(range(len(p1)), 2, replace=False))
+        child = np.concatenate([p1[:point1], p2[point1:point2], p1[point2:]])
+        return child
+    return p1.copy()
+
+def n_point_crossover(p1, p2, crossover_rate, n_points=3):
+    if np.random.uniform(0, 1) < crossover_rate:
+        points = sorted(np.random.choice(range(1, len(p1)), n_points, replace=False))
+        child = p1.copy()
+        for i in range(len(points)):
+            if i % 2 == 0:
+                start = points[i]
+                end = points[i + 1] if i + 1 < len(points) else len(p1)
+                child[start:end] = p2[start:end]
+        return child
+    return p1.copy()
 
 def crossover(p1, p2, crossover_rate):
     if np.random.uniform(0, 1)<crossover_rate:
         cross_point = np.random.randint(0, 2, len(p1)).astype(np.bool_)
         p1[cross_point] = p2[cross_point]
     return p1
-
-'''def crossover_random(parent, pop, crossover_rate):
-    if np.random.uniform(0, 1)<crossover_rate:
-        i = np.random.randint(0, len(pop), 1)
-        
-        # randomly select one from pop
-        cross_point = np.random.randint(0, 2, len(parent)).astype(np.bool_)
-        parent[cross_point] = pop[i][cross_point]
-    return parent'''
 
 def mutation(p, mutation_rate):
     for i in range(len(p)):
@@ -59,7 +77,8 @@ def mating_selection_roulette_wheel(parent, parent_f):
     return np.array(parents)
     
 # *********** tourament *************
-def mating_selection_tourament(parent, parent_f):
+def mating_selection_tourament(parent, parent_f, tournament_k=5):
+    tournament_k = min(tournament_k, len(parent))
     parents = []
     parent_f = np.array(parent_f)
     for _ in range(len(parent)):
@@ -100,17 +119,15 @@ def SUS(parent, parent_f):
     return np.array(selected)
 
 # ********* random selection **************
-def mating_seletion(parent, parent_f):
+def random_selection(parent, parent_f):
     indices = np.random.choice(len(parent), len(parent), replace=True)
     return parent[indices]
-
-
 
 
 # To make your results reproducible (not required by the assignment), you could set the random seed by
 # `np.random.seed(some integer, e.g., 42)`
 
-def GA_1(problem: ioh.problem.PBO, pop_size, mutation_rate, crossover_rate) -> None:
+def s4312090_s4406559_GA(problem: ioh.problem.PBO, pop_size, mutation_rate, crossover_rate) -> None:
     # initial_pop = ... make sure you randomly create the first population
     
     dim = problem.meta_data.n_variables
@@ -127,14 +144,14 @@ def GA_1(problem: ioh.problem.PBO, pop_size, mutation_rate, crossover_rate) -> N
         # .....
         # this is how you evaluate one solution `x`
         # f = problem(x)
-        
         parent = mating_selection_roulette_wheel(parent, parent_f)
         
         new_parent = []
         new_parent_f = []
         for i in range(len(parent)):
             for j in range(i+1, len(parent)):
-                offspring = mutation(crossover(parent[i], parent[j], crossover_rate), mutation_rate)
+                offspring = crossover(parent[i], parent[j], crossover_rate)
+                mutation(offspring, mutation_rate)
                 new_parent.append(offspring)
         
         new_parent = np.array(new_parent)
@@ -145,11 +162,14 @@ def GA_1(problem: ioh.problem.PBO, pop_size, mutation_rate, crossover_rate) -> N
 
         parent = new_parent[fitness_sort][:pop_size]
         parent_f = new_parent_f[fitness_sort][:pop_size]
-    
+        if problem.state.evaluations < budget:
+            continue
+        else:
+            break
     # problem.reset()
     # no return value needed
 
-def studentnumber1_studentnumber2_GA(problem: ioh.problem.PBO) -> None:
+'''def studentnumber1_studentnumber2_GA(problem: ioh.problem.PBO) -> None:
     # initial_pop = ... make sure you randomly create the first population
     
     dim = problem.meta_data.n_variables
@@ -169,13 +189,14 @@ def studentnumber1_studentnumber2_GA(problem: ioh.problem.PBO) -> None:
         
 
         # *********** compare different mating selections ***********
-        parent = mating_seletion(parent, parent_f)
+        parent = mating_selection_roulette_wheel(parent, parent_f)
         
         new_parent = []
         new_parent_f = []
         for i in range(len(parent)):
             for j in range(i+1, len(parent)):
-                offspring = mutation(crossover(parent[i], parent[j], GA_CROSSOVER_RATE), GA_MUTATION_RATE)
+                offspring = crossover(parent[i], parent[j], GA_CROSSOVER_RATE)
+                mutation(offspring, GA_MUTATION_RATE)
                 new_parent.append(offspring)
         
         new_parent = np.array(new_parent)
@@ -187,6 +208,7 @@ def studentnumber1_studentnumber2_GA(problem: ioh.problem.PBO) -> None:
         parent = new_parent[fitness_sort][:GA_POP_SIZE]
         parent_f = new_parent_f[fitness_sort][:GA_POP_SIZE]        
 
+'''
 
 def create_problem(dimension: int, fid: int) -> Tuple[ioh.problem.PBO, ioh.logger.Analyzer]:
     # Declaration of problems to be tested.
@@ -198,7 +220,7 @@ def create_problem(dimension: int, fid: int) -> Tuple[ioh.problem.PBO, ioh.logge
     l = logger.Analyzer(
         root="data",  # the working directory in which a folder named `folder_name` (the next argument) will be created to store data
         folder_name="run",  # the folder name to which the raw performance data will be stored
-        algorithm_name="genetic_algorithm",  # name of your algorithm
+        algorithm_name="generational replacement",  # name of your algorithm
         algorithm_info="Practical assignment of the EA course",
     )
     # attach the logger to the problem
@@ -211,13 +233,13 @@ if __name__ == "__main__":
     # create the LABS problem and the data logger
     F18, _logger = create_problem(dimension=50, fid=18)
     for run in range(20): 
-        studentnumber1_studentnumber2_GA(F18)
+        s4312090_s4406559_GA(F18, crossover_rate=GA_CROSSOVER_RATE, mutation_rate=GA_MUTATION_RATE, pop_size=GA_POP_SIZE)
         F18.reset() # it is necessary to reset the problem after each independent run
     _logger.close() # after all runs, it is necessary to close the logger to make sure all data are written to the folder
     
     # create the N-Queens problem and the data logger
     F23, _logger = create_problem(dimension=49, fid=23)
     for run in range(20): 
-        studentnumber1_studentnumber2_GA(F23)
+        s4312090_s4406559_GA(F23, crossover_rate=GA_CROSSOVER_RATE, mutation_rate=GA_MUTATION_RATE, pop_size=GA_POP_SIZE)
         F23.reset()
     _logger.close()

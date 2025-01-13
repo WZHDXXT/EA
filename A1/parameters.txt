@@ -6,3 +6,35 @@
 {'pop_size': 100, 'mutation_rate': 0.1, 'crossover_rate': 0.9}, 
 {'pop_size': 200, 'mutation_rate': 0.1, 'crossover_rate': 0.7}, {'pop_size': 50, 'mutation_rate': 0.1, 'crossover_rate': 0.5}, {'pop_size': 50, 'mutation_rate': 0.01, 'crossover_rate': 0.7}, {'pop_size': 100, 'mutation_rate': 0.05, 'crossover_rate': 0.7}, {'pop_size': 200, 'mutation_rate': 0.01, 'crossover_rate': 0.9}, {'pop_size': 50, 'mutation_rate': 0.1, 'crossover_rate': 0.7}, {'pop_size': 200, 'mutation_rate': 0.05, 'crossover_rate': 0.5}, {'pop_size': 100, 'mutation_rate': 0.01, 'crossover_rate': 0.9}, {'pop_size': 100, 'mutation_rate': 0.01, 'crossover_rate': 0.7}, {'pop_size': 100, 'mutation_rate': 0.1, 'crossover_rate': 0.5}, {'pop_size': 200, 'mutation_rate': 0.1, 'crossover_rate': 0.9}, {'pop_size': 50, 'mutation_rate': 0.01, 'crossover_rate': 0.9}, {'pop_size': 200, 'mutation_rate': 0.05, 'crossover_rate': 0.9}, {'pop_size': 50, 'mutation_rate': 0.01, 'crossover_rate': 0.5}, {'pop_size': 50, 'mutation_rate': 0.05, 'crossover_rate': 0.9}, {'pop_size': 50, 'mutation_rate': 0.1, 'crossover_rate': 0.9}, {'pop_size': 100, 'mutation_rate': 0.01, 'crossover_rate': 0.5}, {'pop_size': 100, 'mutation_rate': 0.05, 'crossover_rate': 0.5}, {'pop_size': 200, 'mutation_rate': 0.01, 'crossover_rate': 0.5}, {'pop_size': 200, 'mutation_rate': 0.05, 'crossover_rate': 0.7}, {'pop_size': 200, 'mutation_rate': 0.1, 'crossover_rate': 0.5}]
 {'pop_size': 50, 'mutation_rate': 0.05, 'crossover_rate': 0.7}
+
+1.0
+1balanced_weights
+18.0
+0.02040323540288399
+0.7171876013154004
+run4.5
+
+adaptive
+10 11
+21.0
+0.015065055797869549
+0.32910405422376554
+run12 13
+
+1。2
+26.0
+0.03264665839955942
+0.8310368743023683
+run16 17
+
+square
+14.0
+0.018167561789475817
+0.5650525907291339
+
+
+TURBOTS
+square run12 13
+14.0
+0.015312453833353112
+0.8440633718769627
